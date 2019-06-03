@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}{{ config.title }}{% endblock %}
+{% block content %}
+ <div id="posts">
+    {% for page in section.pages %}
+      {% if not page.draft %}
+        <div class="post-row justified">
+          <a href="{{ page.permalink }}">{{ page.title }}</a>
+          <span class="post-date">{{ page.date | date(format="%B %-d, %Y") }}</span>
+        </div>
+      {% endif %}
+    {% endfor %}
+  </div>
+  <p id="bottom-links">
+    {% for name, url in config.extra.links %}
+      <a href="{{ url }}">{{ name }}</a>
+    {% endfor %}
+    <a href="{{ config.base_url }}/rss.xml">RSS</a>
+  </p>
+{% endblock %}

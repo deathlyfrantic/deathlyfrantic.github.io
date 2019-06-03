@@ -1,0 +1,100 @@
++++
+title = "My Experience With The Kinesis Advantage2 Keyboard"
+date = 2017-02-12
++++
+
+The [Kinesis Advantage2](https://www.kinesis-ergo.com/shop/advantage2/) is a bizarre spaceship keyboard that only
+appeals to <del>über nerds</del> cool people who like maximizing efficiency of things that don't even occur to the
+general population. Also, sometimes people have RSI or wrist pain or whatever. I'm a member of the first group (of
+cools) because I long-ago solved my wrist and hand pain with Microsoft ergonomic keyboards.
+
+I don't know when this post will be published. I wanted to start it now so I could document my journey of trying to use
+this crazy keyboard. I received mine on January 23, 2017. For reference, my prior keyboard which I enjoyed quite a bit
+was a Microsoft Sculpt. Before that I used the Microsoft 4000 and before that it was just regular cheapo Logitechs or
+whatever.
+
+## First Impressions: Day One and Two
+
+It seems like a well-made device. I have not had a keyboard with mechanical switches in many years; this has Cherry
+Browns which are supposed to be a something-something type of switch I'm not even going to pretend to care. (I am
+purposely stopping myself from going down the key switch rabbit hole, because my other preferences are already weird and
+specific enough.) Regardless of whatever specs, they feel nice.
+
+I love the ability to remap keys on the keyboard itself. With my other keyboards I've resorted to [custom udev
+rules](https://github.com/deathlyfrantic/dotfiles/blob/af6f9af7923a98d11fa373f909efbfee52216b3c/keyboard.hwdb) to
+remap <kbd>CapsLock</kbd> to <kbd>Ctrl</kbd>; here it's a few keystrokes to do it. I also remapped some other keys:
+swapped <kbd>Backspace</kbd> and regular <kbd>Space</kbd> (I'm a rare left-thumb spacer), assigned the <kbd>Logo</kbd>
+key to <kbd>Delete</kbd>, <kbd>Alt</kbd> to <kbd>End</kbd>, <kbd>PageUp</kbd> to <kbd>Logo</kbd>, <kbd>PageDown</kbd> to
+<kbd>PageUp</kbd>, <kbd>Esc</kbd> to <kbd>PageDown</kbd>, <kbd>CapsLock</kbd> to <kbd>Esc</kbd>, <kbd>Delete</kbd> to
+left <kbd>Ctrl</kbd>, <kbd>End</kbd> to left <kbd>Alt</kbd>. Apparently the default layout really did not suit me.
+
+The thumb clusters were a bit odd but I got used to them pretty quickly, actually. Within a few hours, using my thumbs
+for <kbd>Backspace</kbd> and <kbd>Enter</kbd> became natural. In fact, the first time I used the keyboard on my laptop
+(within a few hours of getting the Advantage2), I was trying to backspace with my thumb. It seems like a very natural
+motion.
+
+Unfortunately I am not having as much luck adapting to the rest of the keyboard. I am mostly to the point where I can
+type letters ok. About an hour after I got the keyboard I played a game of [TypeRacer](http://play.typeracer.com/) and
+scored 35wpm with about 87% accuracy. A day later I'm up to 67wpm with 91% accuracy. (For reference, I generally type in
+the 100-120wpm range with accuracy in the high 90s.) I have no doubt that's going to continue to improve. I guess my
+typing technique is pretty bad - I generally only use three fingers (first, middle and ring) on each hand - and the
+Advantage2 is very unforgiving of that. So I'm gradually improving my technique and eventually I'll be as fast as I was.
+
+The thing that is very inconvenient is the location of punctuation and control keys. I'm a programmer, and punctuation
+is a big part of doing my job (even in languages that don't use a ton of it, like Python). To make the Advantage2 fit
+into a small space, a lot of the keys commonly used in programming were moved to different places - the <kbd>+/=</kbd>
+key, for example, is where the <kbd>~</kbd> key is normally. The <kbd>~</kbd> key is below the <kbd>Z</kbd> (or
+<kbd>:</kbd> in Dvorak), which is not a space where I'm accustomed to having a key. The brackets are possibly the worst
+part. They are below the <kbd>></kbd> and <kbd>?</kbd> keys and it's essentially impossible for me to press them without
+looking yet. I also have a lot of trouble hitting the correct parenthesis keys - I tend to hit <kbd>*</kbd> when I want
+<kbd>(</kbd> and <kbd>(</kbd> when I want <kbd>)</kbd>. And the arrow keys, which as a Vim user are not at all important
+to me generally, keep getting in my way. It's about 50/50 whether I hit <kbd>C</kbd> or <kbd>→</kbd>; I often end up
+with the cursor in the middle of a word I'm typing. However, when I then try to correct that word, by using
+<kbd>←</kbd>, I have to look to find it.
+
+This is the part that worries me about the Advantage2. I accept that my technique will get better and I'll adjust to
+words ok because I've already seen improvements. But punctuation keys are so important for my profession and I have yet
+to see any progress on getting them down. I'm as bad with brackets now as I was yesterday despite hours of use. And if I
+can't manage to adjust, there's no way I'll be able to stick with the Advantage2.
+
+Another weird thing is that despite the general impression that the keyboard *can* relieve pain (I know this is not
+proven and Kinesis does not make any claims to this effect), I'm actually experiencing a noticeable amount of pain on
+the tops of my hands in the area of the tendons. I believe this may be related to the upward angle of the keyboard,
+which is not adjustable. The Sculpt slopes downward from the back. But perhaps that is because I have had to change my
+typing technique and I am now using my muscles in a way I am not accustomed to. This could also be a combination of the
+setup of my desk and chair, or my posture, or any number of other factors. So I'm not saying the Advantage2 is *causing*
+this, just that something is and I may need to make other adjustments to use it effectively.
+
+At this point, I do like the keyboard in general, but it's going to require much more adaptation on my part than I had
+anticipated. When I first switched to the 4000 from a traditional keyboard I could pretty much type at my full speed
+within a few hours. I naïvely expected the same type of transition in this case. That was mistake on my part. (Kinesis
+says most users adapt within 2-4 *weeks*.)
+
+## Day 3: Continuum
+
+I thought a lot about the Advantage2 as I was trying to get to sleep last night (because I am cool), and came upon the
+realization that it might not be for me. My aforementioned "bad" typing technique may not actually be bad, per se;
+perhaps it's just *different*. Thinking about it, my hands tend to move a lot when I type on a more conventional
+keyboard, and the Advantage2 is really designed for zero (or minimal) hand movement. That caused a lot of adaptation
+friction for me.
+
+And is the technique the Advantage2 imposes upon the user necessarily better? Maybe for some, or even most; but I've
+been typing this way for 30-ish years, and forgive me for sounding like a 65-year-old chain smoker, but it hasn't hurt
+me yet.
+
+That point is, I think, important. Because after two days with the Advantage2, I was experiencing hand and wrist pain. I
+am not saying the Advantage2 was the direct cause - it's just as likely my posture when sitting at my desk does not mesh
+well with its shape - but ergonomics are not an exact science and what works for most will not necessarily work for all.
+What I *am* saying, though, is my entire setup worked fine, and when I switched to the Advantage2 from the Sculpt, it
+stopped working fine.
+
+## Day, uh, 20, I guess?: It's Over
+
+Oh gosh, I nearly forgot about my experiment with the Advantage2 entirely. I sent it back on the fourth day of having
+it. It just wasn't going to work for me. The mechanical switches were great, and I miss them a bit, but otherwise I'm
+happy with my Sculpt. Having a semi-normal key layout is far more important to me than I realized. I'm currently eyeing
+the [Matias Ergo Pro](http://matias.ca/ergopro/pc/).
+
+## Final Kinesis Advantage2 tl;dr Review
+
+A well-made, nice keyboard with great switches that may not be for you.

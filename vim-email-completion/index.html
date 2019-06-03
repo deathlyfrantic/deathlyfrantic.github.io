@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Email Address Completion in Vim</title>
+    <link href="https:&#x2f;&#x2f;blog.zandr.me/site.css" rel="stylesheet" type="text/css" />
+    <link rel="alternate" type="application/rss+xml", href="https:&#x2f;&#x2f;blog.zandr.me/rss.xml" />
+  </head>
+  <body>
+    
+  <div class="header">
+    <span class="post-title">Email Address Completion in Vim</span><br/>
+    
+      <span class="post-date">March 19, 2017</span>
+    
+  </div>
+  <hr/>
+  <div class="post-content"><p>A while back I somehow stumbled across <a href="https://arp242.net/code/complete_email.vim/">this Vim utility</a> which provides a
+completion function for email addresses. I really liked the idea, but I didn't love the implementation; I don't want to
+create a new store for my contacts and I certainly don't want to have to use a special escape character to separate the
+fields in that store. Instead, I decided to reimplement the idea to suit my needs.</p>
+<p>My Mutt configuration looks something like this:</p>
+<pre><code>$XDG_CONFIG_HOME/mutt
+├── aliases.muttrc
+├── colors.muttrc
+├── default.muttrc -&gt; $XDG_CONFIG_HOME/mutt/account1.muttrc
+├── account1.muttrc
+├── account2.muttrc
+├── mailcap
+└── muttrc
+</code></pre>
+<p>I keep all of my configuration in <code>$XDG_CONFIG_HOME/mutt</code><sup class="footnote-reference"><a href="#1">1</a></sup>, and I separate different concerns into separate files. My
+main <code>muttrc</code> then <code>source</code>s the other files as appropriate. My aliases go in <code>aliases.muttrc</code>, colors in
+<code>colors.muttrc</code>, etc. I keep account settings in separate files, and then link one of those account files to
+<code>default.muttrc</code>, so that I can use different accounts by default on different machines.</p>
+<p>The point of all that explanation is: I already store my contacts in <code>aliases.muttrc</code><sup class="footnote-reference"><a href="#2">2</a></sup>, which Mutt can read and
+update, and which can be easily-parsed. The general format of a Mutt alias is:</p>
+<pre><code>alias foo Firstname Lastname &lt;email@address.com&gt;
+</code></pre>
+<p>The pieces here are:</p>
+<ul>
+<li><code>alias</code> - this is the command itself</li>
+<li>foo - this is the short name I would type in Mutt to identify a given alias</li>
+<li>Firstname Lastname - really this is anything between the short name and the email address, but is generally a
+contact's proper name</li>
+<li>&lt;email@address.com&gt; - the email address itself, enclosed in angle brackets</li>
+</ul>
+<p>Since this is a regular format<sup class="footnote-reference"><a href="#3">3</a></sup>, it is easy to parse in a Vim completion function. Here's the whole function, but the
+parsing bit is only the last three lines:</p>
+<pre><code>function! emailcomplete#complete(findstart, base) abort
+  if a:findstart
+    &quot; this portion finds and returns the starting
+    &quot; column of the word before the cursor
+    let l:curpos = getcurpos()
+    let l:pos = searchpos('\s', 'b')
+    return (l:pos[0] == l:curpos[1]) ? l:pos[1] : 0
+  endif
+  &quot; this portion finds aliases that contain the word
+  &quot; before the cursor and returns a list of them
+  let aliases = readfile(expand('$XDG_CONFIG_HOME/mutt/aliases.muttrc'))
+  let emails = filter(aliases, {_, alias -&gt; substitute(alias, '^alias ', '', '') =~? a:base})
+  return map(copy(emails), {_, alias -&gt; substitute(alias, '^alias \w\+ ', '', '')})
+endfunction
+</code></pre>
+<p>Basically: read in the <code>aliases.muttrc</code> file as a list; filter that list so that it only contains lines where the
+portion <em>after</em> the <code>alias</code> command contains the matched string; return those results, but without the <code>alias shortname</code>
+portion.</p>
+<p>For example, let's say I have this alias set up for my mom:</p>
+<pre><code>alias mom Firstname Lastname &lt;firstname.lastname@mother.com&gt;
+</code></pre>
+<p>The above function will find this alias regardless of whether I type &quot;firstname&quot; or &quot;mother&quot; or &quot;mom&quot; or anything else
+contained in the string <code>mom Firstname Lastname &lt;firstname.lastname@mother.com&gt;</code>. But, it only <em>returns</em> <code>Firstname Lastname &lt;firstname.lastname@mother.com&gt;</code>, not <code>mom</code>. So, my <code>To:</code> header goes from this:</p>
+<pre><code>To: mom
+</code></pre>
+<p>to this:</p>
+<pre><code>To: Firstname Lastname &lt;firstname.lastname@mother.com&gt;
+</code></pre>
+<p>If you want to use this function, but you're unfamiliar with Vim completion, I'd recommend you read <code>:h ins-completion</code>.
+That said, here's a basic tl;dr:</p>
+<ol>
+<li>Save the above function in <code>$VIMHOME/autoload/emailcomplete.vim</code> (adjust the location of your aliases file as
+necessary)</li>
+<li>Add <code>setlocal completefunc=emailcomplete#complete</code> to <code>$VIMHOME/ftplugin/mail.vim</code> -or- add <code>autocmd FileType mail setlocal completefunc=emailcomplete#complete</code> to your <code>$MYVIMRC</code></li>
+<li>Press <kbd>&lt;C-X&gt;&lt;C-U&gt;</kbd><sup class="footnote-reference"><a href="#4">4</a></sup> in insert mode when you want to complete an email address in a mail file.</li>
+</ol>
+<p>Voilà!</p>
+<div class="footnote-definition" id="1"><sup class="footnote-definition-label">1</sup>
+<p>Mutt supports <code>$XDG_CONFIG_HOME</code> by default <a href="http://www.mutt.org/doc/UPDATING">as of version 1.8</a>. Hoorah!</p>
+</div>
+<div class="footnote-definition" id="2"><sup class="footnote-definition-label">2</sup>
+<p>Mutt has an <a href="http://www.mutt.org/doc/manual/#alias-file"><code>$alias_file</code></a> variable you can set, which is the default
+location where it will save aliases.</p>
+</div>
+<div class="footnote-definition" id="3"><sup class="footnote-definition-label">3</sup>
+<p>The alias command does support <a href="http://www.mutt.org/doc/manual/#alias">some other syntax</a>, but my usage of aliases
+is pretty simple, so I only care about the basic syntax I explained.</p>
+</div>
+<div class="footnote-definition" id="4"><sup class="footnote-definition-label">4</sup>
+<p>The <a href="https://github.com/Carpetsmoker/complete_email.vim">original implementation</a> uses
+<kbd>&lt;C-X&gt;&lt;C-M&gt;</kbd> for triggering the completion, but I'm fine using the standard user completion keys
+for this. It's unlikely I'm going to have <em>another</em> custom completion function for the mail filetype.</p>
+</div>
+</div>
+  <hr/>
+
+  </body>
+</html>

@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}{{ page.title }}{% endblock %}
+{% block content %}
+  <div class="header">
+    <span class="post-title">{{ page.title }}</span><br/>
+    {% if page.date %}
+      <span class="post-date">{{ page.date | date(format="%B %-d, %Y") }}</span>
+    {% endif %}
+  </div>
+  <hr/>
+  <div class="post-content">{{ page.content | safe }}</div>
+  <hr/>
+{% endblock %}

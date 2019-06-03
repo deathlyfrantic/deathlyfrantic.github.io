@@ -1,0 +1,322 @@
+<rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0">
+    <channel>
+        <title>blog.zandr.me</title>
+        <link>https://blog.zandr.me</link>
+        <description></description>
+        <generator>Zola</generator>
+        <language>en</language>
+        <atom:link href="https://blog.zandr.me/rss.xml" rel="self" type="application/rss+xml"/>
+        <lastBuildDate>Sun, 19 Aug 2018 00:00:00 +0000</lastBuildDate>
+        
+            <item>
+                <title>A Failed Experiment in Data Structures</title>
+                <pubDate>Sun, 19 Aug 2018 00:00:00 +0000</pubDate>
+                <link>https://blog.zandr.me/charmap-data-structure-experiment/</link>
+                <guid>https://blog.zandr.me/charmap-data-structure-experiment/</guid>
+                <description>&lt;p&gt;I recently wrote &lt;a href=&quot;https:&#x2f;&#x2f;github.com&#x2f;deathlyfrantic&#x2f;tack&quot;&gt;tack&lt;&#x2f;a&gt;, which is a recreation of &lt;a href=&quot;https:&#x2f;&#x2f;github.com&#x2f;garybernhardt&#x2f;selecta&quot;&gt;Gary Bernhardt&#x27;s
+Selecta&lt;&#x2f;a&gt; in C. Selecta is great, and there&#x27;s no reason not to use it. My
+motivation for writing tack was the work itself; I wanted to implement a real tool in C and make it as fast as I
+possibly could. I&#x27;ve accomplished my goal, at least for the time being: I don&#x27;t think I can make tack any faster without
+using threads. I may eventually try that, but for now I&#x27;m calling it done.&lt;&#x2f;p&gt;
+&lt;p&gt;In my search for speed, I tried an experiment with an interesting data structure. It didn&#x27;t quite work out, but it was a
+fun journey.&lt;&#x2f;p&gt;
+&lt;h2 id=&quot;background&quot;&gt;Background&lt;&#x2f;h2&gt;
+&lt;p&gt;Tack is a fuzzy finder. You dump some text into it through &lt;code&gt;stdin&lt;&#x2f;code&gt; and it opens up &lt;code&gt;&#x2f;dev&#x2f;tty&lt;&#x2f;code&gt; to display a UI which
+allows you to search and filter the text. Once you&#x27;ve made a selection, tack outputs the line you chose to &lt;code&gt;stdout&lt;&#x2f;code&gt;.&lt;&#x2f;p&gt;
+&lt;p&gt;The search algorithm in tack comes directly from Selecta. Imagine searching for the query &lt;code&gt;imc&lt;&#x2f;code&gt; in the line &lt;code&gt;this is my sentence&lt;&#x2f;code&gt;. The search goes something like this:&lt;&#x2f;p&gt;
+&lt;ol&gt;
+&lt;li&gt;tack searches through each character in the line and looks for a match for the &lt;code&gt;i&lt;&#x2f;code&gt; - in this case, it finds the &lt;code&gt;i&lt;&#x2f;code&gt;
+at position 2 (0-indexed)&lt;&#x2f;li&gt;
+&lt;li&gt;if a match is found, it then looks for the &lt;code&gt;m&lt;&#x2f;code&gt;, starting from the letter after the &lt;code&gt;i&lt;&#x2f;code&gt; - in this case, starting from
+position 3, it finds the &lt;code&gt;m&lt;&#x2f;code&gt; at position 8&lt;&#x2f;li&gt;
+&lt;li&gt;if a match is found, it then looks for the &lt;code&gt;c&lt;&#x2f;code&gt;, starting from the letter after the &lt;code&gt;m&lt;&#x2f;code&gt; - in this case, starting from
+position 9, it finds the &lt;code&gt;c&lt;&#x2f;code&gt; at position 17&lt;&#x2f;li&gt;
+&lt;&#x2f;ol&gt;
+&lt;p&gt;The &amp;quot;score&amp;quot; for this match is 17 - 2 = 15.&lt;sup class=&quot;footnote-reference&quot;&gt;&lt;a href=&quot;#1&quot;&gt;1&lt;&#x2f;a&gt;&lt;&#x2f;sup&gt; But we&#x27;re not done! Now, tack searches through each character in the line
+&lt;em&gt;starting from position 3&lt;&#x2f;em&gt;, looking for a match for the &lt;code&gt;i&lt;&#x2f;code&gt;, and finds one at position 5. The remaining behavior is the
+same, but this time our score ends up being 17 - 5 = 12. Tack continues in this fashion, trying to find the lowest
+score, by starting a search from every &lt;code&gt;i&lt;&#x2f;code&gt; in the line. In this case, the lowest score is 12, so that&#x27;s the score we
+use.&lt;&#x2f;p&gt;
+&lt;p&gt;Every line is scanned in full at least once, searching for the first letter of the query, and then each sub-line is
+scanned for every other letter in the query. The fastest scenario is the line contains none of the query letters - in
+this case, we scan the line once and return &lt;code&gt;NULL&lt;&#x2f;code&gt; because there is no score. The second fastest scenario is the line
+contains the first letter of the query, but none of the remaining - in this case, we scan the line once entirely, and
+then once from the first letter match until the end, returning &lt;code&gt;NULL&lt;&#x2f;code&gt;. You can extrapolate the behavior. This can get
+hairy if there are lots of matches and sub-lines to scan. I&#x27;m not great with big-O notation but I believe this is O(n
+log n).&lt;&#x2f;p&gt;
+&lt;p&gt;In our example, we looked at 47 characters:&lt;&#x2f;p&gt;
+&lt;ul&gt;
+&lt;li&gt;19 in the full line, searching for every &lt;code&gt;i&lt;&#x2f;code&gt;&lt;&#x2f;li&gt;
+&lt;li&gt;15 in the first match, from the &lt;code&gt;s&lt;&#x2f;code&gt; after the first &lt;code&gt;i&lt;&#x2f;code&gt; to the &lt;code&gt;c&lt;&#x2f;code&gt;&lt;&#x2f;li&gt;
+&lt;li&gt;13 in the second match, from the &lt;code&gt;s&lt;&#x2f;code&gt; after the second &lt;code&gt;i&lt;&#x2f;code&gt; to the &lt;code&gt;c&lt;&#x2f;code&gt;&lt;&#x2f;li&gt;
+&lt;&#x2f;ul&gt;
+&lt;p&gt;We found two matches of three characters each - so only six of the 47 were relevant. The rest were just wasted cycles.&lt;&#x2f;p&gt;
+&lt;h2 id=&quot;the-light-bulb&quot;&gt;The Light Bulb&lt;&#x2f;h2&gt;
+&lt;p&gt;It seemed to me a lot of time is wasting looking at letters that &lt;em&gt;don&#x27;t&lt;&#x2f;em&gt; match; what if we could only search the letters
+that do?&lt;&#x2f;p&gt;
+&lt;p&gt;Imagine a data structure that looks something like this (shown in JSON for brevity):&lt;&#x2f;p&gt;
+&lt;pre&gt;&lt;code&gt;{
+    &amp;quot;t&amp;quot;: [0, 14],
+    &amp;quot;h&amp;quot;: [1],
+    &amp;quot;i&amp;quot;: [2, 5],
+    &amp;quot;s&amp;quot;: [3, 6, 11],
+    &amp;quot; &amp;quot;: [4, 7, 10],
+    &amp;quot;m&amp;quot;: [8],
+    &amp;quot;y&amp;quot;: [9],
+    &amp;quot;e&amp;quot;: [12, 15, 18],
+    &amp;quot;n&amp;quot;: [13, 16],
+    &amp;quot;t&amp;quot;: [14],
+    &amp;quot;c&amp;quot;: [17],
+}
+&lt;&#x2f;code&gt;&lt;&#x2f;pre&gt;
+&lt;p&gt;Essentially, it&#x27;s a hash table of lists. With a structure like this, we could avoid characters we&#x27;re not searching for
+entirely! Instead, we&#x27;d look for a key first, to determine whether there are &lt;em&gt;any&lt;&#x2f;em&gt; of the characters we want; if there
+are, we can look at the positions of &lt;em&gt;just&lt;&#x2f;em&gt; that character to figure out if it is part of our match.&lt;&#x2f;p&gt;
+&lt;p&gt;This time:&lt;&#x2f;p&gt;
+&lt;ol&gt;
+&lt;li&gt;we search for &lt;code&gt;i&lt;&#x2f;code&gt; in the keys of the table and find it is there, so we start our search at positions 2 and 5 (more
+accurately 3 and 6)&lt;&#x2f;li&gt;
+&lt;li&gt;we search for &lt;code&gt;m&lt;&#x2f;code&gt; in the keys of the table and find it is there - only one, at position 8; this works for both
+matches&lt;&#x2f;li&gt;
+&lt;li&gt;we search for &lt;code&gt;c&lt;&#x2f;code&gt; in the keys of the table and find it is there - only one, at position 17; this works for both
+matches&lt;&#x2f;li&gt;
+&lt;&#x2f;ol&gt;
+&lt;p&gt;We never had to look at any letter that wasn&#x27;t in our query! Instead of looking at 47 characters, we looked at 6.&lt;&#x2f;p&gt;
+&lt;p&gt;Imagine searching this same line for &lt;code&gt;foo&lt;&#x2f;code&gt;: we immediately know &lt;code&gt;f&lt;&#x2f;code&gt; is not a key in our table, and we&#x27;re done. Instead
+of the O(n) performance of iterating at every character in the line, instead we get O(1) performance from looking up a
+key in a hash table.&lt;sup class=&quot;footnote-reference&quot;&gt;&lt;a href=&quot;#2&quot;&gt;2&lt;&#x2f;a&gt;&lt;&#x2f;sup&gt; We did one hash table lookup, instead of looking at 19 entire characters.&lt;&#x2f;p&gt;
+&lt;p&gt;Now imagine searching for &lt;code&gt;ce&lt;&#x2f;code&gt;: we find &lt;code&gt;c&lt;&#x2f;code&gt; in the table once, at position 17. We then search for &lt;code&gt;e&lt;&#x2f;code&gt;, find it in three
+positions - but only one after our &lt;code&gt;c&lt;&#x2f;code&gt;, which is position 18. In this case we looked at one &lt;code&gt;c&lt;&#x2f;code&gt; and three &lt;code&gt;e&lt;&#x2f;code&gt;s - four
+total characters, and they were all contained within our query.&lt;&#x2f;p&gt;
+&lt;p&gt;Ultimately I decided to call this structure a &lt;code&gt;CharMap&lt;&#x2f;code&gt;&lt;sup class=&quot;footnote-reference&quot;&gt;&lt;a href=&quot;#3&quot;&gt;3&lt;&#x2f;a&gt;&lt;&#x2f;sup&gt;.&lt;&#x2f;p&gt;
+&lt;h2 id=&quot;implementation&quot;&gt;Implementation&lt;&#x2f;h2&gt;
+&lt;p&gt;I thought this had to be worth trying, so I did. There&#x27;s a &lt;a href=&quot;https:&#x2f;&#x2f;github.com&#x2f;deathlyfrantic&#x2f;tack&#x2f;tree&#x2f;charmap-experiment&quot;&gt;branch on
+GitHub&lt;&#x2f;a&gt;. Most of the action is in
+&lt;a href=&quot;https:&#x2f;&#x2f;github.com&#x2f;deathlyfrantic&#x2f;tack&#x2f;blob&#x2f;charmap-experiment&#x2f;src&#x2f;charmap.c&quot;&gt;&lt;code&gt;charmap.c&lt;&#x2f;code&gt;&lt;&#x2f;a&gt;. I used the existing hash
+table implementation that I had already written to cache search results and then a growable array structure (very
+similar to what I had already written to store other list data) to store the positions of each character.&lt;&#x2f;p&gt;
+&lt;p&gt;Surprisingly, it worked! This is by far the most complicated data structure I&#x27;ve ever implemented in C, and I was
+pleased with myself for how quickly I managed to get it working.&lt;&#x2f;p&gt;
+&lt;p&gt;Unfortunately, it didn&#x27;t really help.&lt;&#x2f;p&gt;
+&lt;h2 id=&quot;the-problem&quot;&gt;The Problem&lt;&#x2f;h2&gt;
+&lt;p&gt;When using the existing algorithm, this data structure &lt;em&gt;does&lt;&#x2f;em&gt; speed up searches. &lt;em&gt;However&lt;&#x2f;em&gt;, I hadn&#x27;t factored in the
+cost of setting up these structures in the first place. In tack, that cost is amortized over the life of the process,
+since the input lines are essentially immutable. I had figured whatever the penalty was of setting up these structures
+would be well worth the speed increase of the searching, and it just wasn&#x27;t.&lt;&#x2f;p&gt;
+&lt;p&gt;I didn&#x27;t specifically measure, but search speed was not noticeably faster. Start-up time, though, skyrocketed. What used
+to be a barely perceptible flicker of a pause when starting up turned into a painfully obvious halt while all of the
+structures were allocated and filled.&lt;&#x2f;p&gt;
+&lt;h2 id=&quot;trade-off&quot;&gt;Trade-off&lt;&#x2f;h2&gt;
+&lt;p&gt;The general lifetime of a tack process is short. The idea is you dump some data in, enter a few characters to find the
+line you want, maybe scroll up or down a few times, and hit enter. If you&#x27;re a fast typist and know what you&#x27;re looking
+for, it may be running for less than a second total. In this context, the abysmal start-up time penalty imposed by the
+&lt;code&gt;CharMap&lt;&#x2f;code&gt; structure was just too much to bear.&lt;&#x2f;p&gt;
+&lt;p&gt;But, tack is generally used to operate on &amp;quot;short&amp;quot;&lt;sup class=&quot;footnote-reference&quot;&gt;&lt;a href=&quot;#4&quot;&gt;4&lt;&#x2f;a&gt;&lt;&#x2f;sup&gt; lines. Searching a short line for a short query doesn&#x27;t offer as
+much opportunity for optimization as searching a long line for a long query. Depending on the length of the lines and
+the query, it may be entirely reasonable to endure the increased start-up cost to save a lot of time searching.&lt;&#x2f;p&gt;
+&lt;p&gt;There&#x27;s probably a way to calculate the inflection point at which using this data structure makes sense, but I&#x27;m not
+mathy enough to figure it out myself.&lt;&#x2f;p&gt;
+&lt;h2 id=&quot;conclusion&quot;&gt;Conclusion&lt;&#x2f;h2&gt;
+&lt;p&gt;While this experiment didn&#x27;t pan out, I still feel it was useful to perform. It took me out of my comfort zone and
+forced me to stretch my abilities. In writing tack, not only have I really explored some complicated data structures,
+I&#x27;ve also learned how to use lldb to debug C, and how to profile a running process using Instruments.app.&lt;&#x2f;p&gt;
+&lt;p&gt;I&#x27;m not expecting anyone to switch from Selecta to tack. Unless you only need ASCII support and regularly search
+hundreds of thousands of lines, the increased speed will not help you. For me, the whole point of writing tack in the
+first place was learning. By that measure, it has been a very successful project.&lt;&#x2f;p&gt;
+&lt;div class=&quot;footnote-definition&quot; id=&quot;1&quot;&gt;&lt;sup class=&quot;footnote-definition-label&quot;&gt;1&lt;&#x2f;sup&gt;
+&lt;p&gt;The scoring is a little more complicated than this, but this simplified version captures the gist of it.&lt;&#x2f;p&gt;
+&lt;&#x2f;div&gt;
+&lt;div class=&quot;footnote-definition&quot; id=&quot;2&quot;&gt;&lt;sup class=&quot;footnote-definition-label&quot;&gt;2&lt;&#x2f;sup&gt;
+&lt;p&gt;Hash tables only &lt;em&gt;average&lt;&#x2f;em&gt; O(1) performance, but in this case, since we&#x27;re only dealing with ASCII, I used 255
+buckets in the hash table and the ordinal value of the character as the hash; this way I was guaranteed to avoid
+collisions.&lt;&#x2f;p&gt;
+&lt;&#x2f;div&gt;
+&lt;div class=&quot;footnote-definition&quot; id=&quot;3&quot;&gt;&lt;sup class=&quot;footnote-definition-label&quot;&gt;3&lt;&#x2f;sup&gt;
+&lt;p&gt;I&#x27;m sure someone else has come up with something like this before and given it a better name.&lt;&#x2f;p&gt;
+&lt;&#x2f;div&gt;
+&lt;div class=&quot;footnote-definition&quot; id=&quot;4&quot;&gt;&lt;sup class=&quot;footnote-definition-label&quot;&gt;4&lt;&#x2f;sup&gt;
+&lt;p&gt;For some definition of &amp;quot;short.&amp;quot;&lt;&#x2f;p&gt;
+&lt;&#x2f;div&gt;
+</description>
+            </item>
+        
+            <item>
+                <title>Email Address Completion in Vim</title>
+                <pubDate>Sun, 19 Mar 2017 00:00:00 +0000</pubDate>
+                <link>https://blog.zandr.me/vim-email-completion/</link>
+                <guid>https://blog.zandr.me/vim-email-completion/</guid>
+                <description>&lt;p&gt;A while back I somehow stumbled across &lt;a href=&quot;https:&#x2f;&#x2f;arp242.net&#x2f;code&#x2f;complete_email.vim&#x2f;&quot;&gt;this Vim utility&lt;&#x2f;a&gt; which provides a
+completion function for email addresses. I really liked the idea, but I didn&#x27;t love the implementation; I don&#x27;t want to
+create a new store for my contacts and I certainly don&#x27;t want to have to use a special escape character to separate the
+fields in that store. Instead, I decided to reimplement the idea to suit my needs.&lt;&#x2f;p&gt;
+&lt;p&gt;My Mutt configuration looks something like this:&lt;&#x2f;p&gt;
+&lt;pre&gt;&lt;code&gt;$XDG_CONFIG_HOME&#x2f;mutt
+├── aliases.muttrc
+├── colors.muttrc
+├── default.muttrc -&amp;gt; $XDG_CONFIG_HOME&#x2f;mutt&#x2f;account1.muttrc
+├── account1.muttrc
+├── account2.muttrc
+├── mailcap
+└── muttrc
+&lt;&#x2f;code&gt;&lt;&#x2f;pre&gt;
+&lt;p&gt;I keep all of my configuration in &lt;code&gt;$XDG_CONFIG_HOME&#x2f;mutt&lt;&#x2f;code&gt;&lt;sup class=&quot;footnote-reference&quot;&gt;&lt;a href=&quot;#1&quot;&gt;1&lt;&#x2f;a&gt;&lt;&#x2f;sup&gt;, and I separate different concerns into separate files. My
+main &lt;code&gt;muttrc&lt;&#x2f;code&gt; then &lt;code&gt;source&lt;&#x2f;code&gt;s the other files as appropriate. My aliases go in &lt;code&gt;aliases.muttrc&lt;&#x2f;code&gt;, colors in
+&lt;code&gt;colors.muttrc&lt;&#x2f;code&gt;, etc. I keep account settings in separate files, and then link one of those account files to
+&lt;code&gt;default.muttrc&lt;&#x2f;code&gt;, so that I can use different accounts by default on different machines.&lt;&#x2f;p&gt;
+&lt;p&gt;The point of all that explanation is: I already store my contacts in &lt;code&gt;aliases.muttrc&lt;&#x2f;code&gt;&lt;sup class=&quot;footnote-reference&quot;&gt;&lt;a href=&quot;#2&quot;&gt;2&lt;&#x2f;a&gt;&lt;&#x2f;sup&gt;, which Mutt can read and
+update, and which can be easily-parsed. The general format of a Mutt alias is:&lt;&#x2f;p&gt;
+&lt;pre&gt;&lt;code&gt;alias foo Firstname Lastname &amp;lt;email@address.com&amp;gt;
+&lt;&#x2f;code&gt;&lt;&#x2f;pre&gt;
+&lt;p&gt;The pieces here are:&lt;&#x2f;p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;alias&lt;&#x2f;code&gt; - this is the command itself&lt;&#x2f;li&gt;
+&lt;li&gt;foo - this is the short name I would type in Mutt to identify a given alias&lt;&#x2f;li&gt;
+&lt;li&gt;Firstname Lastname - really this is anything between the short name and the email address, but is generally a
+contact&#x27;s proper name&lt;&#x2f;li&gt;
+&lt;li&gt;&amp;lt;email@address.com&amp;gt; - the email address itself, enclosed in angle brackets&lt;&#x2f;li&gt;
+&lt;&#x2f;ul&gt;
+&lt;p&gt;Since this is a regular format&lt;sup class=&quot;footnote-reference&quot;&gt;&lt;a href=&quot;#3&quot;&gt;3&lt;&#x2f;a&gt;&lt;&#x2f;sup&gt;, it is easy to parse in a Vim completion function. Here&#x27;s the whole function, but the
+parsing bit is only the last three lines:&lt;&#x2f;p&gt;
+&lt;pre&gt;&lt;code&gt;function! emailcomplete#complete(findstart, base) abort
+  if a:findstart
+    &amp;quot; this portion finds and returns the starting
+    &amp;quot; column of the word before the cursor
+    let l:curpos = getcurpos()
+    let l:pos = searchpos(&#x27;\s&#x27;, &#x27;b&#x27;)
+    return (l:pos[0] == l:curpos[1]) ? l:pos[1] : 0
+  endif
+  &amp;quot; this portion finds aliases that contain the word
+  &amp;quot; before the cursor and returns a list of them
+  let aliases = readfile(expand(&#x27;$XDG_CONFIG_HOME&#x2f;mutt&#x2f;aliases.muttrc&#x27;))
+  let emails = filter(aliases, {_, alias -&amp;gt; substitute(alias, &#x27;^alias &#x27;, &#x27;&#x27;, &#x27;&#x27;) =~? a:base})
+  return map(copy(emails), {_, alias -&amp;gt; substitute(alias, &#x27;^alias \w\+ &#x27;, &#x27;&#x27;, &#x27;&#x27;)})
+endfunction
+&lt;&#x2f;code&gt;&lt;&#x2f;pre&gt;
+&lt;p&gt;Basically: read in the &lt;code&gt;aliases.muttrc&lt;&#x2f;code&gt; file as a list; filter that list so that it only contains lines where the
+portion &lt;em&gt;after&lt;&#x2f;em&gt; the &lt;code&gt;alias&lt;&#x2f;code&gt; command contains the matched string; return those results, but without the &lt;code&gt;alias shortname&lt;&#x2f;code&gt;
+portion.&lt;&#x2f;p&gt;
+&lt;p&gt;For example, let&#x27;s say I have this alias set up for my mom:&lt;&#x2f;p&gt;
+&lt;pre&gt;&lt;code&gt;alias mom Firstname Lastname &amp;lt;firstname.lastname@mother.com&amp;gt;
+&lt;&#x2f;code&gt;&lt;&#x2f;pre&gt;
+&lt;p&gt;The above function will find this alias regardless of whether I type &amp;quot;firstname&amp;quot; or &amp;quot;mother&amp;quot; or &amp;quot;mom&amp;quot; or anything else
+contained in the string &lt;code&gt;mom Firstname Lastname &amp;lt;firstname.lastname@mother.com&amp;gt;&lt;&#x2f;code&gt;. But, it only &lt;em&gt;returns&lt;&#x2f;em&gt; &lt;code&gt;Firstname Lastname &amp;lt;firstname.lastname@mother.com&amp;gt;&lt;&#x2f;code&gt;, not &lt;code&gt;mom&lt;&#x2f;code&gt;. So, my &lt;code&gt;To:&lt;&#x2f;code&gt; header goes from this:&lt;&#x2f;p&gt;
+&lt;pre&gt;&lt;code&gt;To: mom
+&lt;&#x2f;code&gt;&lt;&#x2f;pre&gt;
+&lt;p&gt;to this:&lt;&#x2f;p&gt;
+&lt;pre&gt;&lt;code&gt;To: Firstname Lastname &amp;lt;firstname.lastname@mother.com&amp;gt;
+&lt;&#x2f;code&gt;&lt;&#x2f;pre&gt;
+&lt;p&gt;If you want to use this function, but you&#x27;re unfamiliar with Vim completion, I&#x27;d recommend you read &lt;code&gt;:h ins-completion&lt;&#x2f;code&gt;.
+That said, here&#x27;s a basic tl;dr:&lt;&#x2f;p&gt;
+&lt;ol&gt;
+&lt;li&gt;Save the above function in &lt;code&gt;$VIMHOME&#x2f;autoload&#x2f;emailcomplete.vim&lt;&#x2f;code&gt; (adjust the location of your aliases file as
+necessary)&lt;&#x2f;li&gt;
+&lt;li&gt;Add &lt;code&gt;setlocal completefunc=emailcomplete#complete&lt;&#x2f;code&gt; to &lt;code&gt;$VIMHOME&#x2f;ftplugin&#x2f;mail.vim&lt;&#x2f;code&gt; -or- add &lt;code&gt;autocmd FileType mail setlocal completefunc=emailcomplete#complete&lt;&#x2f;code&gt; to your &lt;code&gt;$MYVIMRC&lt;&#x2f;code&gt;&lt;&#x2f;li&gt;
+&lt;li&gt;Press &lt;kbd&gt;&amp;lt;C-X&amp;gt;&amp;lt;C-U&amp;gt;&lt;&#x2f;kbd&gt;&lt;sup class=&quot;footnote-reference&quot;&gt;&lt;a href=&quot;#4&quot;&gt;4&lt;&#x2f;a&gt;&lt;&#x2f;sup&gt; in insert mode when you want to complete an email address in a mail file.&lt;&#x2f;li&gt;
+&lt;&#x2f;ol&gt;
+&lt;p&gt;Voilà!&lt;&#x2f;p&gt;
+&lt;div class=&quot;footnote-definition&quot; id=&quot;1&quot;&gt;&lt;sup class=&quot;footnote-definition-label&quot;&gt;1&lt;&#x2f;sup&gt;
+&lt;p&gt;Mutt supports &lt;code&gt;$XDG_CONFIG_HOME&lt;&#x2f;code&gt; by default &lt;a href=&quot;http:&#x2f;&#x2f;www.mutt.org&#x2f;doc&#x2f;UPDATING&quot;&gt;as of version 1.8&lt;&#x2f;a&gt;. Hoorah!&lt;&#x2f;p&gt;
+&lt;&#x2f;div&gt;
+&lt;div class=&quot;footnote-definition&quot; id=&quot;2&quot;&gt;&lt;sup class=&quot;footnote-definition-label&quot;&gt;2&lt;&#x2f;sup&gt;
+&lt;p&gt;Mutt has an &lt;a href=&quot;http:&#x2f;&#x2f;www.mutt.org&#x2f;doc&#x2f;manual&#x2f;#alias-file&quot;&gt;&lt;code&gt;$alias_file&lt;&#x2f;code&gt;&lt;&#x2f;a&gt; variable you can set, which is the default
+location where it will save aliases.&lt;&#x2f;p&gt;
+&lt;&#x2f;div&gt;
+&lt;div class=&quot;footnote-definition&quot; id=&quot;3&quot;&gt;&lt;sup class=&quot;footnote-definition-label&quot;&gt;3&lt;&#x2f;sup&gt;
+&lt;p&gt;The alias command does support &lt;a href=&quot;http:&#x2f;&#x2f;www.mutt.org&#x2f;doc&#x2f;manual&#x2f;#alias&quot;&gt;some other syntax&lt;&#x2f;a&gt;, but my usage of aliases
+is pretty simple, so I only care about the basic syntax I explained.&lt;&#x2f;p&gt;
+&lt;&#x2f;div&gt;
+&lt;div class=&quot;footnote-definition&quot; id=&quot;4&quot;&gt;&lt;sup class=&quot;footnote-definition-label&quot;&gt;4&lt;&#x2f;sup&gt;
+&lt;p&gt;The &lt;a href=&quot;https:&#x2f;&#x2f;github.com&#x2f;Carpetsmoker&#x2f;complete_email.vim&quot;&gt;original implementation&lt;&#x2f;a&gt; uses
+&lt;kbd&gt;&amp;lt;C-X&amp;gt;&amp;lt;C-M&amp;gt;&lt;&#x2f;kbd&gt; for triggering the completion, but I&#x27;m fine using the standard user completion keys
+for this. It&#x27;s unlikely I&#x27;m going to have &lt;em&gt;another&lt;&#x2f;em&gt; custom completion function for the mail filetype.&lt;&#x2f;p&gt;
+&lt;&#x2f;div&gt;
+</description>
+            </item>
+        
+            <item>
+                <title>My Experience With The Kinesis Advantage2 Keyboard</title>
+                <pubDate>Sun, 12 Feb 2017 00:00:00 +0000</pubDate>
+                <link>https://blog.zandr.me/kinesis-advantage/</link>
+                <guid>https://blog.zandr.me/kinesis-advantage/</guid>
+                <description>&lt;p&gt;The &lt;a href=&quot;https:&#x2f;&#x2f;www.kinesis-ergo.com&#x2f;shop&#x2f;advantage2&#x2f;&quot;&gt;Kinesis Advantage2&lt;&#x2f;a&gt; is a bizarre spaceship keyboard that only
+appeals to &lt;del&gt;über nerds&lt;&#x2f;del&gt; cool people who like maximizing efficiency of things that don&#x27;t even occur to the
+general population. Also, sometimes people have RSI or wrist pain or whatever. I&#x27;m a member of the first group (of
+cools) because I long-ago solved my wrist and hand pain with Microsoft ergonomic keyboards.&lt;&#x2f;p&gt;
+&lt;p&gt;I don&#x27;t know when this post will be published. I wanted to start it now so I could document my journey of trying to use
+this crazy keyboard. I received mine on January 23, 2017. For reference, my prior keyboard which I enjoyed quite a bit
+was a Microsoft Sculpt. Before that I used the Microsoft 4000 and before that it was just regular cheapo Logitechs or
+whatever.&lt;&#x2f;p&gt;
+&lt;h2 id=&quot;first-impressions-day-one-and-two&quot;&gt;First Impressions: Day One and Two&lt;&#x2f;h2&gt;
+&lt;p&gt;It seems like a well-made device. I have not had a keyboard with mechanical switches in many years; this has Cherry
+Browns which are supposed to be a something-something type of switch I&#x27;m not even going to pretend to care. (I am
+purposely stopping myself from going down the key switch rabbit hole, because my other preferences are already weird and
+specific enough.) Regardless of whatever specs, they feel nice.&lt;&#x2f;p&gt;
+&lt;p&gt;I love the ability to remap keys on the keyboard itself. With my other keyboards I&#x27;ve resorted to &lt;a href=&quot;https:&#x2f;&#x2f;github.com&#x2f;deathlyfrantic&#x2f;dotfiles&#x2f;blob&#x2f;af6f9af7923a98d11fa373f909efbfee52216b3c&#x2f;keyboard.hwdb&quot;&gt;custom udev
+rules&lt;&#x2f;a&gt; to
+remap &lt;kbd&gt;CapsLock&lt;&#x2f;kbd&gt; to &lt;kbd&gt;Ctrl&lt;&#x2f;kbd&gt;; here it&#x27;s a few keystrokes to do it. I also remapped some other keys:
+swapped &lt;kbd&gt;Backspace&lt;&#x2f;kbd&gt; and regular &lt;kbd&gt;Space&lt;&#x2f;kbd&gt; (I&#x27;m a rare left-thumb spacer), assigned the &lt;kbd&gt;Logo&lt;&#x2f;kbd&gt;
+key to &lt;kbd&gt;Delete&lt;&#x2f;kbd&gt;, &lt;kbd&gt;Alt&lt;&#x2f;kbd&gt; to &lt;kbd&gt;End&lt;&#x2f;kbd&gt;, &lt;kbd&gt;PageUp&lt;&#x2f;kbd&gt; to &lt;kbd&gt;Logo&lt;&#x2f;kbd&gt;, &lt;kbd&gt;PageDown&lt;&#x2f;kbd&gt; to
+&lt;kbd&gt;PageUp&lt;&#x2f;kbd&gt;, &lt;kbd&gt;Esc&lt;&#x2f;kbd&gt; to &lt;kbd&gt;PageDown&lt;&#x2f;kbd&gt;, &lt;kbd&gt;CapsLock&lt;&#x2f;kbd&gt; to &lt;kbd&gt;Esc&lt;&#x2f;kbd&gt;, &lt;kbd&gt;Delete&lt;&#x2f;kbd&gt; to
+left &lt;kbd&gt;Ctrl&lt;&#x2f;kbd&gt;, &lt;kbd&gt;End&lt;&#x2f;kbd&gt; to left &lt;kbd&gt;Alt&lt;&#x2f;kbd&gt;. Apparently the default layout really did not suit me.&lt;&#x2f;p&gt;
+&lt;p&gt;The thumb clusters were a bit odd but I got used to them pretty quickly, actually. Within a few hours, using my thumbs
+for &lt;kbd&gt;Backspace&lt;&#x2f;kbd&gt; and &lt;kbd&gt;Enter&lt;&#x2f;kbd&gt; became natural. In fact, the first time I used the keyboard on my laptop
+(within a few hours of getting the Advantage2), I was trying to backspace with my thumb. It seems like a very natural
+motion.&lt;&#x2f;p&gt;
+&lt;p&gt;Unfortunately I am not having as much luck adapting to the rest of the keyboard. I am mostly to the point where I can
+type letters ok. About an hour after I got the keyboard I played a game of &lt;a href=&quot;http:&#x2f;&#x2f;play.typeracer.com&#x2f;&quot;&gt;TypeRacer&lt;&#x2f;a&gt; and
+scored 35wpm with about 87% accuracy. A day later I&#x27;m up to 67wpm with 91% accuracy. (For reference, I generally type in
+the 100-120wpm range with accuracy in the high 90s.) I have no doubt that&#x27;s going to continue to improve. I guess my
+typing technique is pretty bad - I generally only use three fingers (first, middle and ring) on each hand - and the
+Advantage2 is very unforgiving of that. So I&#x27;m gradually improving my technique and eventually I&#x27;ll be as fast as I was.&lt;&#x2f;p&gt;
+&lt;p&gt;The thing that is very inconvenient is the location of punctuation and control keys. I&#x27;m a programmer, and punctuation
+is a big part of doing my job (even in languages that don&#x27;t use a ton of it, like Python). To make the Advantage2 fit
+into a small space, a lot of the keys commonly used in programming were moved to different places - the &lt;kbd&gt;+&#x2f;=&lt;&#x2f;kbd&gt;
+key, for example, is where the &lt;kbd&gt;~&lt;&#x2f;kbd&gt; key is normally. The &lt;kbd&gt;~&lt;&#x2f;kbd&gt; key is below the &lt;kbd&gt;Z&lt;&#x2f;kbd&gt; (or
+&lt;kbd&gt;:&lt;&#x2f;kbd&gt; in Dvorak), which is not a space where I&#x27;m accustomed to having a key. The brackets are possibly the worst
+part. They are below the &lt;kbd&gt;&amp;gt;&lt;&#x2f;kbd&gt; and &lt;kbd&gt;?&lt;&#x2f;kbd&gt; keys and it&#x27;s essentially impossible for me to press them without
+looking yet. I also have a lot of trouble hitting the correct parenthesis keys - I tend to hit &lt;kbd&gt;*&lt;&#x2f;kbd&gt; when I want
+&lt;kbd&gt;(&lt;&#x2f;kbd&gt; and &lt;kbd&gt;(&lt;&#x2f;kbd&gt; when I want &lt;kbd&gt;)&lt;&#x2f;kbd&gt;. And the arrow keys, which as a Vim user are not at all important
+to me generally, keep getting in my way. It&#x27;s about 50&#x2f;50 whether I hit &lt;kbd&gt;C&lt;&#x2f;kbd&gt; or &lt;kbd&gt;→&lt;&#x2f;kbd&gt;; I often end up
+with the cursor in the middle of a word I&#x27;m typing. However, when I then try to correct that word, by using
+&lt;kbd&gt;←&lt;&#x2f;kbd&gt;, I have to look to find it.&lt;&#x2f;p&gt;
+&lt;p&gt;This is the part that worries me about the Advantage2. I accept that my technique will get better and I&#x27;ll adjust to
+words ok because I&#x27;ve already seen improvements. But punctuation keys are so important for my profession and I have yet
+to see any progress on getting them down. I&#x27;m as bad with brackets now as I was yesterday despite hours of use. And if I
+can&#x27;t manage to adjust, there&#x27;s no way I&#x27;ll be able to stick with the Advantage2.&lt;&#x2f;p&gt;
+&lt;p&gt;Another weird thing is that despite the general impression that the keyboard &lt;em&gt;can&lt;&#x2f;em&gt; relieve pain (I know this is not
+proven and Kinesis does not make any claims to this effect), I&#x27;m actually experiencing a noticeable amount of pain on
+the tops of my hands in the area of the tendons. I believe this may be related to the upward angle of the keyboard,
+which is not adjustable. The Sculpt slopes downward from the back. But perhaps that is because I have had to change my
+typing technique and I am now using my muscles in a way I am not accustomed to. This could also be a combination of the
+setup of my desk and chair, or my posture, or any number of other factors. So I&#x27;m not saying the Advantage2 is &lt;em&gt;causing&lt;&#x2f;em&gt;
+this, just that something is and I may need to make other adjustments to use it effectively.&lt;&#x2f;p&gt;
+&lt;p&gt;At this point, I do like the keyboard in general, but it&#x27;s going to require much more adaptation on my part than I had
+anticipated. When I first switched to the 4000 from a traditional keyboard I could pretty much type at my full speed
+within a few hours. I naïvely expected the same type of transition in this case. That was mistake on my part. (Kinesis
+says most users adapt within 2-4 &lt;em&gt;weeks&lt;&#x2f;em&gt;.)&lt;&#x2f;p&gt;
+&lt;h2 id=&quot;day-3-continuum&quot;&gt;Day 3: Continuum&lt;&#x2f;h2&gt;
+&lt;p&gt;I thought a lot about the Advantage2 as I was trying to get to sleep last night (because I am cool), and came upon the
+realization that it might not be for me. My aforementioned &amp;quot;bad&amp;quot; typing technique may not actually be bad, per se;
+perhaps it&#x27;s just &lt;em&gt;different&lt;&#x2f;em&gt;. Thinking about it, my hands tend to move a lot when I type on a more conventional
+keyboard, and the Advantage2 is really designed for zero (or minimal) hand movement. That caused a lot of adaptation
+friction for me.&lt;&#x2f;p&gt;
+&lt;p&gt;And is the technique the Advantage2 imposes upon the user necessarily better? Maybe for some, or even most; but I&#x27;ve
+been typing this way for 30-ish years, and forgive me for sounding like a 65-year-old chain smoker, but it hasn&#x27;t hurt
+me yet.&lt;&#x2f;p&gt;
+&lt;p&gt;That point is, I think, important. Because after two days with the Advantage2, I was experiencing hand and wrist pain. I
+am not saying the Advantage2 was the direct cause - it&#x27;s just as likely my posture when sitting at my desk does not mesh
+well with its shape - but ergonomics are not an exact science and what works for most will not necessarily work for all.
+What I &lt;em&gt;am&lt;&#x2f;em&gt; saying, though, is my entire setup worked fine, and when I switched to the Advantage2 from the Sculpt, it
+stopped working fine.&lt;&#x2f;p&gt;
+&lt;h2 id=&quot;day-uh-20-i-guess-it-s-over&quot;&gt;Day, uh, 20, I guess?: It&#x27;s Over&lt;&#x2f;h2&gt;
+&lt;p&gt;Oh gosh, I nearly forgot about my experiment with the Advantage2 entirely. I sent it back on the fourth day of having
+it. It just wasn&#x27;t going to work for me. The mechanical switches were great, and I miss them a bit, but otherwise I&#x27;m
+happy with my Sculpt. Having a semi-normal key layout is far more important to me than I realized. I&#x27;m currently eyeing
+the &lt;a href=&quot;http:&#x2f;&#x2f;matias.ca&#x2f;ergopro&#x2f;pc&#x2f;&quot;&gt;Matias Ergo Pro&lt;&#x2f;a&gt;.&lt;&#x2f;p&gt;
+&lt;h2 id=&quot;final-kinesis-advantage2-tl-dr-review&quot;&gt;Final Kinesis Advantage2 tl;dr Review&lt;&#x2f;h2&gt;
+&lt;p&gt;A well-made, nice keyboard with great switches that may not be for you.&lt;&#x2f;p&gt;
+</description>
+            </item>
+        
+    </channel>
+</rss>
