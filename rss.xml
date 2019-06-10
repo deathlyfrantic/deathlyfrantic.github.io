@@ -6,7 +6,150 @@
         <generator>Zola</generator>
         <language>en</language>
         <atom:link href="https://blog.zandr.me/rss.xml" rel="self" type="application/rss+xml"/>
-        <lastBuildDate>Sun, 19 Aug 2018 00:00:00 +0000</lastBuildDate>
+        <lastBuildDate>Sun, 09 Jun 2019 00:00:00 +0000</lastBuildDate>
+        
+            <item>
+                <title>vimlfmt</title>
+                <pubDate>Sun, 09 Jun 2019 00:00:00 +0000</pubDate>
+                <link>https://blog.zandr.me/vimlfmt/</link>
+                <guid>https://blog.zandr.me/vimlfmt/</guid>
+                <description>&lt;p&gt;I&#x27;ve just made public the repo for a project I&#x27;ve been working on for quite a while -
+&lt;a href=&quot;https:&#x2f;&#x2f;github.com&#x2f;deathlyfrantic&#x2f;vimlfmt&quot;&gt;vimlfmt&lt;&#x2f;a&gt;. vimlfmt is a code formatter for VimL (or VimScript) code, which is
+the scripting language used by the Vim and Neovim text editors.&lt;&#x2f;p&gt;
+&lt;h2 id=&quot;background&quot;&gt;Background&lt;&#x2f;h2&gt;
+&lt;p&gt;I love code formatters. It&#x27;s not that I&#x27;m unable to format code myself - I am, and I care a lot about this kind of
+thing. But formatting code is a pretty mechanical task, and mechanical tasks should be done by machines. I&#x27;ve seen
+arguments against using formatters suggesting that doing it manually is somehow more pure or virtuous, but I think that
+idea is silly. Your editor indents your code as you type, doesn&#x27;t it? How is this different? Indeed, if all code
+formatters did was indenting, I&#x27;d be ambivalent about the concept at best. But good formatters also deal with structure,
+and that is where I see the value.&lt;&#x2f;p&gt;
+&lt;p&gt;At work I write JavaScript almost exclusively, and &lt;a href=&quot;https:&#x2f;&#x2f;prettier.io&quot;&gt;Prettier&lt;&#x2f;a&gt; is godsend. Essentially all
+JavaScript that does anything useful has some level of complicated nesting going on. Take this example:&lt;&#x2f;p&gt;
+&lt;pre&gt;&lt;code&gt;const someVariable = someReallyLongFunctionName(foo, [bar, &amp;quot;baz&amp;quot;], { a: 1, b: 2, c: 3 }, err =&amp;gt; console.log(err));
+&lt;&#x2f;code&gt;&lt;&#x2f;pre&gt;
+&lt;p&gt;This line is 114 characters long, so if you&#x27;re trying to keep to 80- or 100-character columns, it has to be broken
+somewhere. Where do you break it? You may have some general rule you try to follow, but do you always follow it
+consistently, in every case? Prettier does. It does this (with &lt;code&gt;--parser babylon --trailing-comma es5&lt;&#x2f;code&gt;):&lt;&#x2f;p&gt;
+&lt;pre&gt;&lt;code&gt;const someVariable = someReallyLongFunctionName(
+  foo,
+  [bar, &amp;quot;baz&amp;quot;],
+  { a: 1, b: 2, c: 3 },
+  err =&amp;gt; console.log(err)
+);
+&lt;&#x2f;code&gt;&lt;&#x2f;pre&gt;
+&lt;p&gt;And it does so for everyone, in every case. Now I don&#x27;t have to go look for some other example that roughly matches the
+shape of this code to see how it was formatted before. It&#x27;s just done and I can move on with my life. And our projects
+have consistent formatting no matter who works on them!&lt;&#x2f;p&gt;
+&lt;p&gt;Even easier, I use &lt;a href=&quot;https:&#x2f;&#x2f;github.com&#x2f;sbdchd&#x2f;neoformat&quot;&gt;Neoformat&lt;&#x2f;a&gt; and have Neovim set up to run Neoformat on save - so
+every time I write a buffer, the code is formatted for me automatically. It&#x27;s completely painless, and I&#x27;m so accustomed
+to it I don&#x27;t even notice when it happens.&lt;&#x2f;p&gt;
+&lt;h2 id=&quot;vimlfmt&quot;&gt;vimlfmt&lt;&#x2f;h2&gt;
+&lt;p&gt;Unfortunately, there was not a formatter for VimL code, or at least I was not able to find one. Since I (sadly) write a
+fair amount of VimL, this was annoying. So, I decided I&#x27;d try to write one!&lt;&#x2f;p&gt;
+&lt;p&gt;Since Rust has become my go-to language, I started there. I first toyed around with parsing VimL using a PEG parser
+(specifically &lt;a href=&quot;https:&#x2f;&#x2f;github.com&#x2f;kevinmehall&#x2f;rust-peg&quot;&gt;rust-peg&lt;&#x2f;a&gt;) but quickly ran into complications. First, I can&#x27;t
+say I thoroughly understand how to use a PEG parser; second, VimL is a hilariously complicated monstrosity of a
+language, and I don&#x27;t know if a PEG parser even &lt;em&gt;can&lt;&#x2f;em&gt; parse VimL.&lt;&#x2f;p&gt;
+&lt;p&gt;I then stumbled across an existing VimL parser, &lt;a href=&quot;https:&#x2f;&#x2f;github.com&#x2f;vim-jp&#x2f;vim-vimlparser&quot;&gt;vim-jp&#x2f;vim-vimlparser&lt;&#x2f;a&gt;, which
+is written in VimL itself (and also has ports to Python and JavaScript in the repo). I decided it might be a fun project
+to port this parser to Rust, &lt;a href=&quot;https:&#x2f;&#x2f;github.com&#x2f;deathlyfrantic&#x2f;vimlfmt&#x2f;tree&#x2f;master&#x2f;parser&quot;&gt;which I did&lt;&#x2f;a&gt;, in a
+more-or-less line-by-line fashion from the Python version. (I&#x27;ve since done some cleanup&#x2f;refactoring but it still very
+much shows its roots as a translation.)&lt;&#x2f;p&gt;
+&lt;p&gt;Once I had the parser basically working, I added a formatter layer on top, and the result is vimlfmt.&lt;&#x2f;p&gt;
+&lt;h2 id=&quot;viml-is-a-terrible-language&quot;&gt;VimL is a Terrible Language&lt;&#x2f;h2&gt;
+&lt;p&gt;Once I had a basic skeleton of a formatter working, I set about to add the pieces necessary to do formatting beyond just
+basic indentation and line-length stuff. This is when I came upon the realization that VimL is a terrible language. On
+the surface, it&#x27;s basically Ruby- or Python-like - it&#x27;s dynamic, there are no curly braces, in general it&#x27;s pretty easy
+to understand and read. Below that, however, it&#x27;s a mess.&lt;&#x2f;p&gt;
+&lt;p&gt;The basic building block of VimL&#x27;s grammar&lt;sup class=&quot;footnote-reference&quot;&gt;&lt;a href=&quot;#1&quot;&gt;1&lt;&#x2f;a&gt;&lt;&#x2f;sup&gt; is the expression, but to do almost anything useful, you need to use a
+command. A command is either a built-in command (these start with lowercase letters, e.g. &lt;code&gt;echo&lt;&#x2f;code&gt;), or a user-defined
+command (these must start with uppercase letters, e.g. &lt;code&gt;MyCommand&lt;&#x2f;code&gt;). This isn&#x27;t inherently bad, but let&#x27;s take a look at
+an example which will illustrate one of the major pain points of parsing VimL.&lt;&#x2f;p&gt;
+&lt;p&gt;Say you want to parse the &lt;code&gt;echo&lt;&#x2f;code&gt; command. If you look at &lt;code&gt;:help echo&lt;&#x2f;code&gt;, you&#x27;ll see that &lt;code&gt;echo&lt;&#x2f;code&gt; takes one or more &lt;code&gt;expr1&lt;&#x2f;code&gt;
+arguments. (An &lt;code&gt;expr1&lt;&#x2f;code&gt; has a specific definition in VimL which I will not explain here, but &lt;code&gt;:help expr1&lt;&#x2f;code&gt; goes into
+depth.) So we can pass a string literal to &lt;code&gt;echo&lt;&#x2f;code&gt;, or we can pass some more complicated expression which will be
+evaluated before the result is then echoed. Thus,&lt;&#x2f;p&gt;
+&lt;pre&gt;&lt;code&gt;echo &amp;quot;3 + 2 =&amp;quot; 3 + 2
+&lt;&#x2f;code&gt;&lt;&#x2f;pre&gt;
+&lt;p&gt;will echo &amp;quot;3 + 2 = 5&amp;quot;. Neat. This seems to make sense. A command is parsed as a name followed by some number of
+space-separated expressions. Got it.&lt;&#x2f;p&gt;
+&lt;p&gt;Now I want to change the way strings are highlighted, so I want to use the &lt;code&gt;highlight&lt;&#x2f;code&gt; command. Let&#x27;s figure out how it
+works. Probably I just need to pass the expressions in a certain order, right? Problem #1: &lt;code&gt;:help highlight&lt;&#x2f;code&gt; doesn&#x27;t
+take us directly to the &lt;code&gt;highlight&lt;&#x2f;code&gt; command; instead it takes us to the &amp;quot;Highlight command&amp;quot; section. Ok, scroll down,
+find &lt;code&gt;:highlight&lt;&#x2f;code&gt;. At the time of this writing, the Neovim help lists &lt;em&gt;six&lt;&#x2f;em&gt; different forms of the &lt;code&gt;:highlight&lt;&#x2f;code&gt;
+command:&lt;&#x2f;p&gt;
+&lt;pre&gt;&lt;code&gt;:hi[ghlight]        List all the current highlight groups that have
+                    attributes set.
+
+:hi[ghlight] {group-name}
+                    List one highlight group.
+
+:hi[ghlight] clear  Reset all highlighting to the defaults.  Removes all
+                    highlighting for groups added by the user!
+                    Uses the current value of &#x27;background&#x27; to decide which
+                    default colors to use.
+
+:hi[ghlight] clear {group-name}
+:hi[ghlight] {group-name} NONE
+                    Disable the highlighting for one highlight group.  It
+                    is _not_ set back to the default colors.
+
+:hi[ghlight] [default] {group-name} {key}={arg} ..
+                    Add a highlight group, or change the highlighting for
+                    an existing group.
+                    See highlight-args for the {key}={arg} arguments.
+                    See :highlight-default for the optional [default]
+                    argument.
+&lt;&#x2f;code&gt;&lt;&#x2f;pre&gt;
+&lt;p&gt;This one command does many different things depending on the arguments I pass to it. Not only that, but the arguments
+aren&#x27;t expressions - they&#x27;re just raw strings. Some of them, like &lt;code&gt;clear&lt;&#x2f;code&gt;, are flags, some of them, like &lt;code&gt;{group-name}&lt;&#x2f;code&gt;,
+are variables, some of them are key-value pairs (&lt;code&gt;{key}={arg}&lt;&#x2f;code&gt;). So if you want to parse &lt;code&gt;highlight&lt;&#x2f;code&gt; commands, you have
+to recognize this command and parse its own weird syntax specifically. But it&#x27;s a command, just like &lt;code&gt;echo&lt;&#x2f;code&gt; - shouldn&#x27;t
+the syntax be the same?&lt;&#x2f;p&gt;
+&lt;p&gt;(Another fun thing, while we&#x27;re here - notice the &amp;quot;&lt;code&gt;hi[ghlight]&lt;&#x2f;code&gt;&amp;quot; in the help text there? What&#x27;s that about? Vim allows
+you to abbreviate commands to the shortest-possible unique substring, so you can use &lt;code&gt;:hi&lt;&#x2f;code&gt; or &lt;code&gt;:hig&lt;&#x2f;code&gt; or &lt;code&gt;:high&lt;&#x2f;code&gt; or
+&lt;code&gt;:highl&lt;&#x2f;code&gt; etc instead of typing out &lt;code&gt;:highlight&lt;&#x2f;code&gt;. This is presumably meant for usability when typing commands in the
+command line, but unfortunately it means you have to match, in the case of &lt;code&gt;highlight&lt;&#x2f;code&gt;, eight different strings to a
+single command. Different plugins use different conventions - personally I always try to use the full command name, but
+&lt;a href=&quot;http:&#x2f;&#x2f;github.com&#x2f;ctrlpvim&#x2f;ctrlp.vim&quot;&gt;CtrlP&lt;&#x2f;a&gt; uses the shortest possible names, which I find basically unreadable.)&lt;&#x2f;p&gt;
+&lt;p&gt;As we&#x27;ve just illustrated, parsing VimL commands is a huge pain. You need to account for every built-in command and its
+unique syntax. Sure, some of them are the same: &lt;code&gt;echo&lt;&#x2f;code&gt;, &lt;code&gt;echon&lt;&#x2f;code&gt;, &lt;code&gt;echomsg&lt;&#x2f;code&gt;, and &lt;code&gt;echoerr&lt;&#x2f;code&gt; all use the same syntax
+(though &lt;code&gt;echohl&lt;&#x2f;code&gt; doesn&#x27;t!), but &lt;code&gt;highlight&lt;&#x2f;code&gt; has six different forms by itself. (Good luck figuring out &lt;code&gt;:syntax&lt;&#x2f;code&gt;!)&lt;&#x2f;p&gt;
+&lt;p&gt;In some cases, differing syntax for commands makes sense: &lt;code&gt;let&lt;&#x2f;code&gt;, which is used for variable declaration, understandably
+has a different syntax than &lt;code&gt;while&lt;&#x2f;code&gt;, which is the command used to begin a while loop. But there should be an upper bound
+on this variability. The current state is obviously a result of Vim&#x27;s long history, during which new functionality has
+gradually been glommed on to the existing language, with little thought given to an overall design or consistency. Some
+commands take arguments with sigils, e.g. &lt;code&gt;edit&lt;&#x2f;code&gt; takes options with a leading &lt;code&gt;++&lt;&#x2f;code&gt;, while others just take raw strings
+as flags, e.g. our &lt;code&gt;highlight clear&lt;&#x2f;code&gt; example above, or &lt;code&gt;nested&lt;&#x2f;code&gt; in &lt;code&gt;autocmd&lt;&#x2f;code&gt;.&lt;&#x2f;p&gt;
+&lt;h2 id=&quot;burnout&quot;&gt;Burnout&lt;&#x2f;h2&gt;
+&lt;p&gt;The longer I worked on the formatter, the more frustrated I became by VimL&#x27;s weird quirks.&lt;sup class=&quot;footnote-reference&quot;&gt;&lt;a href=&quot;#2&quot;&gt;2&lt;&#x2f;a&gt;&lt;&#x2f;sup&gt; This was partly
+exacerbated by the fact that I was working in Rust, which (in my opinion) has a beautifully consistent design. I&#x27;d try
+to implement formatting for a new command, and have to spend hours looking at the Vim help, working through all the
+permutations. It was just exhausting.&lt;&#x2f;p&gt;
+&lt;p&gt;Eventually I settled on making the parser dumber, and just parsing most commands as a name and a raw string for the
+arguments. The idea is to move the parsing of the raw string of arguments into the consumer of the parsed tree (in
+vimlfmt&#x27;s case, the formatter portion). So that&#x27;s where I&#x27;ve settled. But, I&#x27;m tired.&lt;&#x2f;p&gt;
+&lt;p&gt;The fact is, I don&#x27;t write nearly the amount of VimL I once did - my Vim environment is more-or-less feature complete,
+and my general tendency these days is to remove plugins, rather than to add them. With this just being a private
+project to which only I was contributing, progress stalled and eventually stopped. I haven&#x27;t made significant changes to
+the code in months. So this isn&#x27;t the perfect time to &amp;quot;release&amp;quot; the project, but without external motivation, further
+progress is unlikely.&lt;&#x2f;p&gt;
+&lt;h2 id=&quot;contributions-wanted&quot;&gt;Contributions Wanted&lt;&#x2f;h2&gt;
+&lt;p&gt;I&#x27;d love for vimlfmt to become useful for people, and for others to be excited about it. I&#x27;d especially love
+contributions from folks who know how to write code formatters - I&#x27;m very much just winging it, and it&#x27;s entirely
+possible the whole architecture of the project is terrible. If you would like to get involved, please do! Use it, see
+what doesn&#x27;t work or what could work better, and submit an issue or PR.&lt;&#x2f;p&gt;
+&lt;div class=&quot;footnote-definition&quot; id=&quot;1&quot;&gt;&lt;sup class=&quot;footnote-definition-label&quot;&gt;1&lt;&#x2f;sup&gt;
+&lt;p&gt;I am not a programming language grammarian, so please forgive my imprecise usage of this term.&lt;&#x2f;p&gt;
+&lt;&#x2f;div&gt;
+&lt;div class=&quot;footnote-definition&quot; id=&quot;2&quot;&gt;&lt;sup class=&quot;footnote-definition-label&quot;&gt;2&lt;&#x2f;sup&gt;
+&lt;p&gt;At some point I made a more-than-trivial effort to switch over to Emacs, just to have a more reasonable scripting
+language. It didn&#x27;t work out, because Vim&#x27;s idioms are too ingrained in me to make such an effort worthwhile. (And
+before you try to argue with me about this: yes, I used Evil mode. It&#x27;s not just modal keybindings for basic editing
+that keeps me using Vim.)&lt;&#x2f;p&gt;
+&lt;&#x2f;div&gt;
+</description>
+            </item>
         
             <item>
                 <title>A Failed Experiment in Data Structures</title>
